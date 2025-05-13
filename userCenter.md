@@ -485,7 +485,7 @@ create table user
 
    ```java
    // 账户不包含特殊字符
-   String validPattern = "\\pP|\\pS|\\s+";
+   String validPattern = "[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
    Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
    if(!matcher.find()) {
        return -1;
@@ -521,7 +521,7 @@ create table user
                return -1;
            }
            // 账户不包含特殊字符
-           String validPattern = "\\pP|\\pS|\\s+";
+           String validPattern = "[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
            Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
            if(!matcher.find()) {
                return -1;
@@ -568,6 +568,40 @@ create table user
     ```
 
 13. 到此，整个登录的接口逻辑就开发完成了。
+
+测试类：
+
+```java
+@Test
+void userRegister() {
+    String userAccount = "yupi";
+    String userPassword = "";
+    String checkPassword = "123456";
+    long result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+    userAccount = "yu";
+    result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+    userAccount = "yupi";
+    userPassword = "123456";
+    result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+    userAccount = "yu pi";
+    userPassword = "12345678";
+    result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+    userPassword = "123456789";
+    result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+    userAccount = "dogYupi";
+    checkPassword = "12345678";
+    result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+    userAccount = "yupi";
+    result = userService.userRegister(userAccount, userPassword, checkPassword);
+    Assertions.assertEquals(-1, result);
+}
+```
 
 
 
