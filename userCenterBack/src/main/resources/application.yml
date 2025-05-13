@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: userCenter
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/userCenter
+    username: root
+    password: sdd0531sdd0531
+server:
+  port: 8080
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
