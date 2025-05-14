@@ -629,5 +629,60 @@ void userRegister() {
 ### 接口逻辑开发
 
 1. 在 UserService 接口中编写 doLogin 方法，返回值为脱敏后的用户信息，需要接收的参数有 用户账户、用户密码。编写完成后添加注释。
+
 2. 在方法上 Alt + Enter，实现方法。
+
 3. 将注册的逻辑复制过来加以更改。
+
+   ```java
+   public User doLogin(String userAccount, String userPassword) {
+       // 1. 校验
+       if(StringUtils.isAnyBlank(userAccount, userPassword)) {
+           return null;
+       }
+       if(userAccount.length() < 4) {
+           return null;
+       }
+       if(userPassword.length() < 8) {
+           return null;
+       }
+       // 账户不包含特殊字符
+       String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+       Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
+       if(!matcher.find()) {
+           return null;
+       }
+       // 密码加密
+       String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+   
+       // 查询用户是否存在
+       QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+       queryWrapper.eq("userAccount", userAccount);
+       queryWrapper.eq("userPassword", userPassword);
+       User user = userMapper.selectOne(queryWrapper);
+       if(user == null) {
+           log.info("user Login failed, userAccount cannot match userPassword");
+           return null;
+       }
+       return user;
+   }
+   ```
+
+### 登录态管理（Cookie 和 Session）
+
+**如何知道是哪个用户登录的？**
+
+1. 连接服务端后，得到一个 session1 状态（匿名会话），返回给前端。
+2. 登录成功后，得到登录成功的 session2，并且给该 session 设置一些值（比如用户信息），返回给前端一个设置 cookie 的命令。
+3. 前端收到后端的命令后，设置 cookie，保存在浏览器内。
+4. 前端再次请求后端的时候（必须相同的域名），在请求头中带上 cookie 去请求。
+5.  后端拿到前端传来的 cookie，找到对应的 session。
+6. 后端从 session 中可以取出基于该 session 存储的变量（登录信息、用户名等 ）。
+
+**开发步骤：**
+
+1. 在 UserService 的接口中，doLogin 方法添加参数 `HttpServletRequest request`，并更新实现类。
+
+2. 这里直接调用 `request` 的 `getSession` 方法，得到一个 Session，再调用其 `setAttribute` 方法设置一个值，`setAttribute` 参数是一个 Map，所以我们先定义一个键，然后再传给方法。
+
+   

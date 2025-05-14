@@ -2,6 +2,8 @@ package com.guyuqi.usercenterback.service;
 
 import com.guyuqi.usercenterback.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
 * @author guyuqi
@@ -21,10 +23,10 @@ public interface UserService extends IService<User> {
     long userRegister(String userAccount, String userPassword, String checkPassword);
 
     /**
-     *
-     * @param userAccount 用户账户
+     * @param userAccount  用户账户
      * @param userPassword 用户密码
+     * @param request 设置 Session
      * @return 脱敏后的用户信息
      */
-    User doLogin(String userAccount, String userPassword);
+    User doLogin(String userAccount, String userPassword, HttpServletRequest request);
 }

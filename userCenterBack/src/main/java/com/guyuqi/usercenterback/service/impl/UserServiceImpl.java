@@ -6,6 +6,7 @@ import com.guyuqi.usercenterback.model.domain.User;
 import com.guyuqi.usercenterback.service.UserService;
 import com.guyuqi.usercenterback.mapper.UserMapper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * 密码盐值
      */
     private static final String SALT = "yupi";
-    
+
+    /**
+     * 登录状态键
+     */
+    private static final String USER_LOGIN_STATE = "userLoginState";
+
     @Resource
     private UserMapper userMapper;
 
@@ -75,7 +81,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public User doLogin(String userAccount, String userPassword) {
+    public User doLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if(StringUtils.isAnyBlank(userAccount, userPassword)) {
             return null;
@@ -104,6 +110,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.info("user Login failed, userAccount cannot match userPassword");
             return null;
         }
+        // 记录用户登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+
         return user;
     }
 }
