@@ -658,7 +658,7 @@ void userRegister() {
        // 查询用户是否存在
        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
        queryWrapper.eq("userAccount", userAccount);
-       queryWrapper.eq("userPassword", userPassword);
+       queryWrapper.eq("userPassword", queryWrapper);
        User user = userMapper.selectOne(queryWrapper);
        if(user == null) {
            log.info("user Login failed, userAccount cannot match userPassword");
