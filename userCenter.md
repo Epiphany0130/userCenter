@@ -487,7 +487,7 @@ create table user
    // 账户不包含特殊字符
    String validPattern = "[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
    Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-   if(!matcher.find()) {
+   if(matcher.find()) {
        return -1;
    }
    ```
@@ -523,7 +523,7 @@ create table user
            // 账户不包含特殊字符
            String validPattern = "[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
            Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-           if(!matcher.find()) {
+           if(matcher.find()) {
                return -1;
            }
            // 密码和校验密码相同
@@ -649,7 +649,7 @@ void userRegister() {
        // 账户不包含特殊字符
        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
        Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-       if(!matcher.find()) {
+       if(matcher.find()) {
            return null;
        }
        // 密码加密
@@ -685,4 +685,171 @@ void userRegister() {
 
 2. 这里直接调用 `request` 的 `getSession` 方法，得到一个 Session，再调用其 `setAttribute` 方法设置一个值，`setAttribute` 参数是一个 Map，所以我们先定义一个键，然后再传给方法。
 
+   ```java
+   /**
+    * 登录状态键
+    */
+   private static final String USER_LOGIN_STATE = "userLoginState";
+   ```
+
+   ```java
+   // 记录用户登录态
+   request.getSession().setAttribute(USER_LOGIN_STATE, user);
+   ```
+
+### 用户脱敏
+
+脱敏的顺序放在记录登录态之前
+
+1. new 一个 User，命名为 safetyUser。
+
+2. 生成器生成 set，根据需求修改。
+
+   ```java
+   User safetyUser = new User();
+   safetyUser.setId(user.getId());
+   safetyUser.setUsername(user.getUsername());
+   safetyUser.setUserAccount(user.getUserAccount());
+   safetyUser.setAvatarUrl(user.getAvatarUrl());
+   safetyUser.setGender(user.getGender());
+   safetyUser.setPhone(user.getPhone());
+   safetyUser.setEmail(user.getEmail());
+   safetyUser.setUserStatus(user.getUserStatus());
+   safetyUser.setCreateTime(user.getCreateTime());
+   ```
+
+3. 登录态的信息和最后返回的内容应该是 safetyUser。
+
+### 存在问题
+
+到此登录的逻辑就写完了，但是登录时查询用户是否存在的逻辑如果用户被删除了就应该查不到了，所以这里用到了 MyBatis-plus 的一个逻辑删除的功能，具体步骤看官方文档。https://baomidou.com/guides/logic-delete/
+
+配置 yml 并添加注解就可以了。
+
+```yml
+global-config:
+  db-config:
+    logic-delete-field: isDelete
+    logic-delete-value: 1
+    logic-not-delete-value: 0
+```
+
+```java
+/**
+* 是否删除
+*/
+@TableLogic
+private Integer isDelete;
+```
+
+### Controller 开发
+
+1. 定义 UserController 类，并在类上添加 `RestController` 注解，
+
+   `RestController` 适用于编写 restful 风格的 api，返回值默认为 json 类型。
+
+2. 添加 `RequestMapping` 注解指定请求路径为 `/user`。
+
+   ```java
+   @RestController
+   @RequestMapping("/user")
+   public class UserController {
+       
+   }
+   ```
+
+3. 注入 Service。
+
+   ```java
+   @Resource
+   private UserService userService;
+   ```
+
+4. 定义一个实体类封装所有的请求参数，定义类名为 `UserRegisterRequest`，实现一下序列化的接口 `Serializable` 并生成序列化 ID。在类中封装 `userAccount`、`userPassword`、`checkPassword` 参数。
+
+   ```java
+   @Data
+   public class UserRegisterRequest implements Serializable {
    
+       @Serial
+       private static final long serialVersionUID = 1762276744925620090L;
+   
+       private String userAccount;
+       private String userPassword;
+       private String checkPassword;
+   }
+   ```
+
+5. 接下来写第一个请求，即用户注册请求。即 public 的 userRegister，返回值为 Long。添加注解 `PostMapping` 指定请求路径为 `/register`。传递参数封装类，并添加 `RequestBody` 注解。
+
+   ```java
+   @PostMapping("/register")
+   public Long userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+   }
+   ```
+
+6. 方法内校验一下数据是否为空，如果为空直接返回空。
+
+   ```java
+   if(userRegisterRequest == null) {
+       return null;
+   }
+   ```
+
+7. 调用 Service 的 `userRegister` 方法，并传递参数，返回 id。（这里的参数可以使用 Auto Filling Java Call Arguments 插件自动生成）
+
+   ```java
+   String userAccount = userRegisterRequest.getUserAccount();
+   String userPassword = userRegisterRequest.getUserPassword();
+   String checkPassword = userRegisterRequest.getCheckPassword();
+   if(StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
+       return null;
+   }
+   return userService.userRegister(userAccount, userPassword, checkPassword);
+   ```
+
+8. 接下来写登录，将注册的代码复制一份下来。
+
+9. 修改代码。
+
+   ```java
+   @PostMapping("/login")
+   public User userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+       if(userLoginRequest == null) {
+           return null; 
+       }
+       String userAccount = userLoginRequest.getUserAccount();
+       String userPassword = userLoginRequest.getUserPassword();
+       if(StringUtils.isAnyBlank(userAccount, userPassword)) {
+           return null;
+       }
+       return userService.doLogin(userAccount, userPassword, request);
+   }
+   ```
+
+### 测试
+
+1. 在 Controller 层单击类前面的图标，打开 IDEA 自带的测试工具界面。
+
+   ![image-20250515094032883](/Users/guyuqi/Documents/@DevCode/userCenter/assets/image-20250515094032883.png)
+
+2. 删除原有的请求，依次点击 “ + ” -> “POST 文本正文”。
+
+   ![image-20250515094134135](/Users/guyuqi/Documents/@DevCode/userCenter/assets/image-20250515094134135.png)
+
+3. 在大括号内编写 json。
+
+   ```http
+   POST http://localhost:8080/user/register
+   Content-Type: application/json
+   
+   {
+     "userAccount": "yupi",
+     "userPassword": "12345678",
+     "checkPassword": "12345678"
+   }
+   ```
+
+4. 以 debug 方式启动项目，打断点测试。
+5. 同样的方式测试登录接口。
+

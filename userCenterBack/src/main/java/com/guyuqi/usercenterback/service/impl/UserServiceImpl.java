@@ -1,4 +1,5 @@
 package com.guyuqi.usercenterback.service.impl;
+import java.util.Date;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -53,11 +54,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 账户不包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-        if(!matcher.find()) {
+        if(matcher.find()) {
             return -1;
         }
         // 密码和校验密码相同
-        if(userPassword.equals(checkPassword)) {
+        if(!userPassword.equals(checkPassword)) {
             return -1;
         }
         // 账户不能重复
@@ -95,7 +96,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 账户不包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(userAccount);
-        if(!matcher.find()) {
+        if(matcher.find()) {
             return null;
         }
         // 密码加密
@@ -110,9 +111,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.info("user Login failed, userAccount cannot match userPassword");
             return null;
         }
-        // 记录用户登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
 
-        return user;
+        // 用户脱敏
+        User safetyUser = new User();
+        safetyUser.setId(user.getId());
+        safetyUser.setUsername(user.getUsername());
+        safetyUser.setUserAccount(user.getUserAccount());
+        safetyUser.setAvatarUrl(user.getAvatarUrl());
+        safetyUser.setGender(user.getGender());
+        safetyUser.setPhone(user.getPhone());
+        safetyUser.setEmail(user.getEmail());
+        safetyUser.setUserStatus(user.getUserStatus());
+        safetyUser.setCreateTime(user.getCreateTime());
+
+
+        // 记录用户登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+
+        return safetyUser;
     }
 }
