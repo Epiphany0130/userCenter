@@ -853,3 +853,142 @@ private Integer isDelete;
 4. 以 debug 方式启动项目，打断点测试。
 5. 同样的方式测试登录接口。
 
+## 用户管理接口 - 后端
+
+！！！ 必须鉴权  ！！！
+
+### 查询用户
+
+1. 使用 GetMapping 设置请求路径 `/search`。
+
+2. 定义 public 的 `searchUsers`，返回值为 `List<User>`，参数传递 `username`。
+
+   ```java
+   @GetMapping("/search")
+   public List<User> searchUsers(String username) {
+   
+   }
+   ```
+
+3. 返回值返回 `userService` 的 `list` 方法，里面传递的参数是 `queryWrapper`，所以上面需要 new 一个 `QueryWrapper`。因为是模糊查询，所以在 `username` 不为空的时候，调用 `queryWrapper` 的 `like` 方法。
+
+   ```java
+   QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+   if(StringUtils.isNotBlank(username)) {
+       queryWrapper.like("username", username);
+   }
+   return userService.list(queryWrapper);
+   ```
+
+### 删除用户
+
+1. 使用 PostMapping 设置请求路径 `/delete`。
+
+2. 定义 public 的 `deleteUser`，返回值为 `boolean`，参数传递前端传来的 `id`。
+
+3. 判断 id 是否小于等于 0，并分别返回结果。
+
+   ```java
+   @PostMapping("/delete")
+   public boolean deleteUser(@RequestBody long id) {
+       if(id <= 0) {
+           return false;
+       }
+       return userService.removeById(id);
+   }
+   ```
+
+### 鉴权
+
+1. 单击 IDEA 右侧的数据库图标，在表上右击，选择 “修改 表...”
+
+   ![image-20250516083046639](assets/image-20250516083046639.png)
+
+2. 在弹出的 “修改” 对话框中单击 “新建” 按钮，在弹出的下拉列表中选择 “列”，设置 “名称” 为 “userRole”，设置 “数据类型” 为 “int”，设置 “默认表达式” 为 “0”，添加 “评论” 为 “用户身份 0 - 普通用户 1 - 管理员”，勾选 “非 null”，单击 “确定” 按钮。
+
+   ![image-20250516083348028](assets/image-20250516083348028.png)
+
+3. 在实体类和 UserMapper.xml 中添加新增的 role。
+
+4. 在 search 方法中添加一个 `HttpServletRequest` 参数，用于拿取用户登录态。
+
+5. 更改 Service 中的登录状态键提到接口中，然后在 Controller 中拿到登录状态。
+
+   ```java
+   Object user = request.getSession().getAttribute(UserService.USER_LOGIN_STATE);
+   User user = (User) userObj;
+   ```
+
+6. 判断如果 user 不等于 1，即不是管理员，返回空数组。
+
+   ```java
+   if(user == null || user.getRole() != 1) {
+       return new ArrayList<>();
+   }
+   ```
+
+7. 此时，1在这里应该被定义为常量，所以新建一个包 `constant`，包下建立 `UserConstant` 接口，将用户的登录键改到这里，并添加鉴权的常量。修改报错代码。
+
+   ```java
+   /**
+    * 用户常量
+    * @author GuYuqi
+    * @version 1.0
+    */
+   public interface UserConstant {
+   
+       /**
+        * 登录状态键
+        */
+       String USER_LOGIN_STATE = "userLoginState";
+   
+       // 鉴权
+       /**
+        * 默认权限
+        */
+       int DEFAULT_ROLE = 0;
+       /**
+        * 管理员权限
+        */
+       int ADMIN_ROLE = 1;
+   }
+   ```
+
+8. 将 Controller 中的 1 改为 ADMIN_ROLE。
+
+9. 将鉴权的逻辑复制一份到删除的接口中，但这样做两段代码完全一样，我们可以将其抽离成一个单独的方法。
+
+   ```java
+   /**
+    * 是否为管理员
+    * @param request
+    * @return
+    */
+   private boolean isAdmin(HttpServletRequest request) {
+       // 鉴权
+       Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+       User user = (User) userObj;
+       return user != null && user.getRole() == ADMIN_ROLE;
+   }
+   ```
+
+10. 在两个接口中调用方法。
+
+11. 设置超时时间，在 yml 中添加。
+
+    ```java
+    spring:  
+      session:
+        timeout: 86400
+    ```
+
+    
+
+
+
+
+
+
+
+
+

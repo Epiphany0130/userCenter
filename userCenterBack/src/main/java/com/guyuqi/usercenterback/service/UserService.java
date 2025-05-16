@@ -1,9 +1,8 @@
 package com.guyuqi.usercenterback.service;
 
-import com.guyuqi.usercenterback.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.guyuqi.usercenterback.model.domain.User;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 /**
 * @author guyuqi
@@ -11,6 +10,8 @@ import jakarta.servlet.http.HttpServletResponse;
 * @createDate 2025-05-13 15:39:53
 */
 public interface UserService extends IService<User> {
+
+
 
     /**
      * 用户注册

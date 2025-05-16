@@ -1,5 +1,4 @@
 package com.guyuqi.usercenterback.service;
-import java.util.Date;
 
 import com.guyuqi.usercenterback.model.domain.User;
 import jakarta.annotation.Resource;

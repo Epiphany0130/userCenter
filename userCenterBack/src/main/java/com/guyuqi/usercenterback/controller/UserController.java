@@ -1,5 +1,6 @@
 package com.guyuqi.usercenterback.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.guyuqi.usercenterback.model.domain.User;
 import com.guyuqi.usercenterback.model.domain.request.UserLoginRequest;
 import com.guyuqi.usercenterback.model.domain.request.UserRegisterRequest;
@@ -7,10 +8,13 @@ import com.guyuqi.usercenterback.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.guyuqi.usercenterback.contant.UserConstant.ADMIN_ROLE;
+import static com.guyuqi.usercenterback.contant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * @author GuYuqi
@@ -39,6 +43,7 @@ public class UserController {
 
     @PostMapping("/login")
     public User userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+
         if(userLoginRequest == null) {
             return null;
         }
@@ -48,5 +53,44 @@ public class UserController {
             return null;
         }
         return userService.doLogin(userAccount, userPassword, request);
+    }
+
+    @GetMapping("/search")
+    public List<User> searchUsers(String username, HttpServletRequest request) {
+
+        if(!isAdmin(request)) {
+            return new ArrayList<>();
+        }
+
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        if(StringUtils.isNotBlank(username)) {
+            queryWrapper.like("username", username);
+        }
+        return userService.list(queryWrapper);
+    }
+
+    @PostMapping("/delete")
+    public boolean deleteUser(@RequestBody long id, HttpServletRequest request) {
+
+        if(!isAdmin(request)) {
+            return false;
+        }
+
+        if(id <= 0) {
+            return false;
+        }
+        return userService.removeById(id);
+    }
+
+    /**
+     * 是否为管理员
+     * @param request
+     * @return
+     */
+    private boolean isAdmin(HttpServletRequest request) {
+        // 鉴权
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User user = (User) userObj;
+        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 }
